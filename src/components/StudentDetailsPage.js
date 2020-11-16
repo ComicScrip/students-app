@@ -1,24 +1,50 @@
-import React from 'react';
-import students from '../data/students';
+import React from "react";
+import { useQuery } from "react-query";
+import LoadingIndicator from "./LoadingIndicator";
+import ErrorBox from "./ErrorBox";
+import {
+  getAvatarUrl,
+  getFullName,
+  getGitHubAccountUrl,
+} from "../data/students";
+import { getEntity, isCancelledError } from "../services/API";
 
-export default function StudentDetailsPage ({ match: { params: { githubAccountName } } }) {
-  const student = students.find(s => s.githubUserName === githubAccountName);
-  if (!student) return <p>Aucun élève avec le compte GH "{githubAccountName}"...</p>;
-  const { firstName, lastName, avatarUrl, fullName, githubAccountUrl, p1bisRepoUrl, p1bisPresented } = student;
+function StudentDetailsPage({
+  match: {
+    params: { githubUserName },
+  },
+}) {
+  const { isLoading, data: student, error } = useQuery(
+    ["students", githubUserName],
+    getEntity
+  );
+  const isError = error && !isCancelledError(error);
+
+  if (isLoading) return <LoadingIndicator />;
+  if (isError)
+    return (
+      <ErrorBox
+        message={"impossible de charger les informations sur l'élève"}
+      />
+    );
+  if (!student)
+    return <p>Aucun élève avec le compte GH "{githubUserName}"...</p>;
+
+  const fullName = getFullName(student);
+  const githubAccountUrl = getGitHubAccountUrl(student);
+
   return (
     <div>
-      <h2>Détails sur un élève</h2>
+      <h2>{fullName}</h2>
 
-      <div className='student-card'>
-        <a href={githubAccountUrl} target='_blank' rel='noopener noreferrer'>
-          <img className='avatar' alt={fullName} src={avatarUrl} />
+      <div className="student-card">
+        <a href={githubAccountUrl} target="_blank" rel="noopener noreferrer">
+          <img className="avatar" alt={fullName} src={getAvatarUrl(student)} />
         </a>
         <br />
-        <p>{firstName}</p>
-        <p>{lastName.toUpperCase()}</p>
-        <a className='p1-repo-link' href={p1bisRepoUrl}>P1bis Repo {p1bisPresented ? '✔' : ''}</a>
       </div>
     </div>
-
   );
 }
+
+export default StudentDetailsPage;
